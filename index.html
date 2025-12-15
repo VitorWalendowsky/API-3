@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Tabela Dark Mode</title>
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #e6edf3;
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #58a6ff;
+        }
+
+        .table-container {
+            max-width: 700px;
+            margin: auto;
+            background: #161b22;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.06);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 16px;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #21262d;
+            color: #58a6ff;
+            font-weight: bold;
+            border-bottom: 2px solid #30363d;
+        }
+
+        tr {
+            border-bottom: 1px solid #30363d;
+        }
+
+        tr:hover {
+            background-color: #1f2731;
+        }
+
+        td {
+            color: #c9d1d9;
+        }
+
+        .loading, .erro {
+            text-align: center;
+            padding: 15px;
+        }
+
+        .erro {
+            color: #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Tabela de Categorias (Dark Mode)</h1>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Categoria</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="tbody-categorias">
+                <tr>
+                    <td colspan="3" class="loading">Carregando...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        async function carregarCategorias() {
+            const tbody = document.getElementById("tbody-categorias");
+            tbody.innerHTML = `<tr><td colspan="3" class="loading">Carregando...</td></tr>`;
+
+            try {
+                const response = await fetch("http://127.0.0.1:8000/api/v1/categorias");
+
+                if (!response.ok) {
+                    throw new Error("Erro ao acessar a API. Status: " + response.status);
+                }
+
+                const categorias = await response.json();
+
+                // Limpar o tbody
+                tbody.innerHTML = "";
+
+                // Montar as linhas dinamicamente
+                categorias.forEach(cat => {
+                    const tr = document.createElement("tr");
+
+                    tr.innerHTML = `
+                        <td>${cat.id}</td>
+                        <td>${cat.nome}</td>
+                        <td>Ativa</td> <!-- você não tem status, então deixei fixo -->
+                    `;
+
+                    tbody.appendChild(tr);
+                });
+
+            } catch (erro) {
+                tbody.innerHTML = `
+                    <tr><td colspan="3" class="erro">${erro.message}</td></tr>
+                `;
+            }
+        }
+
+        carregarCategorias();
+    </script>
+
+</body>
+</html>
