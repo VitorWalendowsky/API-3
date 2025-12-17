@@ -1,9 +1,12 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 
-from classes import AlunoCalcularMedia, CategoriaCriar, CategoriaEditar, ProdutoCriar, ProdutoEditar
-from src.repositorios import mercado_categoria_repositorio, mercado_produto_repositorio
+from classes import AlunoCalcularMedia, CategoriaCriar, CategoriaEditar, ClienteCriar, ProdutoCriar, ProdutoEditar
+from src.database.conexão import get_db
+from src.repositorios import mercado_categoria_repositorio, mercado_cliente_repositorio, mercado_produto_repositorio
 
 from fastapi.middleware.cors import CORSMiddleware
+
+from sqlalchemy.orm import Session
 
 app = FastAPI()
 
@@ -69,8 +72,8 @@ def calcular_media(aluno_dados: AlunoCalcularMedia):
 
 
 @app.get("/api/v1/categorias", tags=["Categorias"])
-def listar_categorias():
-    categorias = mercado_categoria_repositorio.obter_todos()
+def listar_categorias(db: Session = Depends(get_db)):
+    categorias = mercado_categoria_repositorio.obter_todos(db)
     return categorias
 
 
@@ -78,8 +81,8 @@ def listar_categorias():
 # Método POST
 # Body: {"nome": "Batatinha"}
 @app.post("/api/v1/categorias", tags=["Categorias"])
-def cadastrar_categoria(categoria: CategoriaCriar):
-    mercado_categoria_repositorio.cadastrar(categoria.nome)
+def cadastrar_categoria(categoria: CategoriaCriar,  db: Session = Depends(get_db)):
+    mercado_categoria_repositorio.cadastrar(db, categoria.nome)
     return {
         "status": "ok"
     }
@@ -87,8 +90,8 @@ def cadastrar_categoria(categoria: CategoriaCriar):
 # /api/v1/categorias/10
 # Método DELETE
 @app.delete("/api/v1/categorias/{id}", tags=["Categorias"])
-def apagar_categoria(id: int):
-    linhas_afetadas = mercado_categoria_repositorio.apagar(id)
+def apagar_categoria(id: int, db: Session = Depends(get_db)):
+    linhas_afetadas = mercado_categoria_repositorio.apagar(db, id)
     
     if linhas_afetadas == 1:
         return {
@@ -113,8 +116,8 @@ def alterar_categoria(id: int, categoria: CategoriaEditar):
 
     
 @app.get("/api/v1/categorias/{id}", tags=["Categorias"])
-def buscar_categoria_por_id(id: int):
-    categoria = mercado_categoria_repositorio.obter_por_id(id)
+def buscar_categoria_por_id(id: int, db: Session = Depends(get_db)):
+    categoria = mercado_categoria_repositorio.obter_por_id(db, id)
     if categoria is None:
         raise HTTPException(status_code=404, detail="Categoria não encontrada")
     return categoria
@@ -195,3 +198,25 @@ def obter_produto_por_id(id: int):
 # fastapi dev main.py
 # 127.0.0.1:8000/docs
 # 127.0.0.1:8000/greetings
+
+
+# __________________________________________________________________
+# Criar novo endpoint
+# Criar tabela no SQL -> Create table....
+# Adiiciionar classe no src/database/models.py
+# criar repositorio src/repositorio/mercado_xxx_repositorio.py
+# criar função cadastrar
+# adicionar rota (endpoint) no main.py
+# @app.post....
+
+
+@app.post("/api/v1/clientes", tags=["Clientes"])
+def cadastrar_cliente(cliente: ClienteCriar, db: Session = Depends(get_db)):
+    cliente = mercado_cliente_repositorio.cadastrar(
+        db,
+        cliente.nome,
+        cliente.cpf,
+        cliente.data_nascimento,
+        cliente.limite
+    )   
+    return cliente
