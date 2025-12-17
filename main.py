@@ -2,7 +2,8 @@ from fastapi import Depends, FastAPI, HTTPException
 
 from classes import AlunoCalcularMedia, CategoriaCriar, CategoriaEditar, ClienteCriar, ClienteEditar, ProdutoCriar, ProdutoEditar
 from src.database.conexao import get_db
-from src.repositorios import mercado_categoria_repositorio, mercado_cliente_repositorio, mercado_produto_repositorio
+from src.database.models import Livro, Manga
+from src.repositorios import livros_repositorio, manga_repositorio, mercado_categoria_repositorio, mercado_cliente_repositorio, mercado_produto_repositorio
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -134,15 +135,15 @@ def listar_todos_produtos(db: Session = Depends(get_db)):
 
 # cadastrar
 @app.post("/api/v1/produtos", tags=["Produtos"])
-def cadastrar_produto(produto: ProdutoCriar):
-    mercado_produto_repositorio.cadastrar(produto.nome, produto.id_categoria)
+def cadastrar_produto(produto: ProdutoCriar, db: Session = Depends(get_db)):
+    mercado_produto_repositorio.cadastrar(db, produto.nome, produto.id_categoria)
     return {"status": "ok"}
 
 
 # editar
 @app.put("/api/v1/produtos/{id}", tags=["Produtos"])
-def alterar_produto(id: int, produto: ProdutoEditar):
-    linhas_afetadas = mercado_produto_repositorio.editar(id, produto.nome, produto.id_categoria)
+def alterar_produto(id: int, produto: ProdutoEditar, db: Session = Depends(get_db)):
+    linhas_afetadas = mercado_produto_repositorio.editar(db, id, produto.nome, produto.id_categoria)
     if linhas_afetadas != 1:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
     
@@ -151,8 +152,8 @@ def alterar_produto(id: int, produto: ProdutoEditar):
 
 # apagar
 @app.delete("/api/v1/produtos/{id}", tags=["Produtos"])
-def apagar_produto(id: int):
-    linhas_afetadas = mercado_produto_repositorio.apagar(id)
+def apagar_produto(id: int, db: Session = Depends(get_db)):
+    linhas_afetadas = mercado_produto_repositorio.apagar(db, id)
     if linhas_afetadas != 1:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
     
@@ -160,8 +161,8 @@ def apagar_produto(id: int):
 
 # obter por id
 @app.get("/api/v1/produtos/{id}", tags=["Produtos"])
-def obter_produto_por_id(id: int):
-    produto = mercado_produto_repositorio.obter_por_id(id)
+def obter_produto_por_id(id: int, db: Session = Depends(get_db)):
+    produto = mercado_produto_repositorio.obter_por_id(db, id)
     if produto is None:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
     
@@ -254,4 +255,96 @@ def listar_cliente(id: int, db: Session = Depends(get_db)):
 # Criar a classe <Nome>Criar e <Nome>Editar no arquivo classes.py
 # Adicionar rota(endpoint) no main.py de cadastro
 #   @app.post......
+
+# # ---------------------------------------------------------------------------------------------
+# Criar API para livro, manga
+
+# Livros: ID, titulo, preco, isbn, descricao, quantidade de pagians, autor.
+# mangas: id, nome, volume, autor, data_lancamento
+
+
+@app.get("/api/v1/livros", tags=["Livros"])
+def listar_livros(db: Session = Depends(get_db)):
+    return livro_repositorio.listar(db)
+
+
+# Body (JSON):
+# {
+#   "titulo": "Clean Code",
+#   "preco": 99.90,
+#   "isbn": "9780132350884",
+#   "descricao": "Livro sobre boas práticas",
+#   "quantidade_paginas": 464,
+#   "autor": "Robert C. Martin"
+# }
+@app.post("/api/v1/livros", tags=["Livros"])
+def cadastrar_livro(
+    titulo: str,
+    preco: float,
+    isbn: str,
+    descricao: str,
+    quantidade_paginas: int,
+    autor: str,
+    db: Session = Depends(get_db)
+):
+    livro = Livro(
+        titulo=titulo,
+        preco=preco,
+        isbn=isbn,
+        descricao=descricao,
+        quantidade_paginas=quantidade_paginas,
+        autor=autor
+    )
+    livros_repositorio.criar(db, livro)
+    return {"status": "ok"}
+
+
+@app.get("/api/v1/livros/{id}", tags=["Livros"])
+def buscar_livro(id: int, db: Session = Depends(get_db)):
+    livro = livros_repositorio.buscar_por_id(db, id)
+    if not livro:
+        raise HTTPException(status_code=404, detail="Livro não encontrado")
+    return livro
+
+
+@app.delete("/api/v1/livros/{id}", tags=["Livros"])
+def apagar_livro(id: int, db: Session = Depends(get_db)):
+    if livros_repositorio.apagar(db, id) != 1:
+        raise HTTPException(status_code=404, detail="Livro não encontrado")
+    return {"status": "ok"}
+
+
+
+#manga
+@app.get("/api/v1/mangas", tags=["Mangás"])
+def listar_mangas(db: Session = Depends(get_db)):
+    return manga_repositorio.listar(db)
+
+
+# Body (JSON):
+# {
+#   "nome": "One Piece",
+#   "volume": 107,
+#   "autor": "Eiichiro Oda",
+#   "data_lancamento": "2024-01-01"
+# }
+@app.post("/api/v1/mangas", tags=["Mangás"])
+def cadastrar_manga(
+    nome: str,
+    volume: int,
+    autor: str,
+    data_lancamento: str,
+    db: Session = Depends(get_db)
+):
+    manga = Manga(
+        nome=nome,
+        volume=volume,
+        autor=autor,
+        data_lancamento=data_lancamento
+    )
+    manga_repositorio.criar(db, manga)
+    return {"status": "ok"}
+
+
+
 

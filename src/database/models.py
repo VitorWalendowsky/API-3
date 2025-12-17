@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Date, Double, ForeignKey, Integer, String
+from sqlalchemy import Column, Date, Double, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -39,3 +39,25 @@ class Produto(Base):
     id_categoria = Column(Integer, ForeignKey("categorias.id"))
 
     categoria = relationship("Categoria", back_populates="produtos")
+
+
+class Livro(Base):
+    __tablename__ = "livros"
+
+    id = Column(Integer, primary_key=True, index=True)
+    titulo = Column(String(200), nullable=False)
+    preco = Column(Float, nullable=False)
+    isbn = Column(String(20), unique=True, nullable=False)
+    descricao = Column(String(500))
+    quantidade_paginas = Column(Integer)
+    autor = Column(String(150), nullable=False)
+
+
+class Manga(Base):
+    __tablename__ = "mangas"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nome = Column(String(200), nullable=False)
+    volume = Column(Integer, nullable=False)
+    autor = Column(String(150), nullable=False)
+    data_lancamento = Column(Date)
