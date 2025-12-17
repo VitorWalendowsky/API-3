@@ -1,7 +1,7 @@
 from fastapi import Depends, FastAPI, HTTPException
 
-from classes import AlunoCalcularMedia, CategoriaCriar, CategoriaEditar, ClienteCriar, ProdutoCriar, ProdutoEditar
-from src.database.conexão import get_db
+from classes import AlunoCalcularMedia, CategoriaCriar, CategoriaEditar, ClienteCriar, ClienteEditar, ProdutoCriar, ProdutoEditar
+from src.database.conexao import get_db
 from src.repositorios import mercado_categoria_repositorio, mercado_cliente_repositorio, mercado_produto_repositorio
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 app = FastAPI()
+# pip install pymysql
+# pip freeze > requirements.txt
+
 
 
 app.add_middleware(
@@ -81,7 +84,7 @@ def listar_categorias(db: Session = Depends(get_db)):
 # Método POST
 # Body: {"nome": "Batatinha"}
 @app.post("/api/v1/categorias", tags=["Categorias"])
-def cadastrar_categoria(categoria: CategoriaCriar,  db: Session = Depends(get_db)):
+def cadastrar_categoria(categoria: CategoriaCriar, db: Session = Depends(get_db)):
     mercado_categoria_repositorio.cadastrar(db, categoria.nome)
     return {
         "status": "ok"
@@ -104,8 +107,8 @@ def apagar_categoria(id: int, db: Session = Depends(get_db)):
 # Método PUT
 # Body {"nome": "Batatona 2.0"}
 @app.put("/api/v1/categorias/{id}", tags=["Categorias"])
-def alterar_categoria(id: int, categoria: CategoriaEditar):
-    linhas_afetadas = mercado_categoria_repositorio.editar(id, categoria.nome)
+def alterar_categoria(id: int, categoria: CategoriaEditar, db: Session = Depends(get_db)):
+    linhas_afetadas = mercado_categoria_repositorio.editar(db, id, categoria.nome)
     if linhas_afetadas == 1:
         return {
             "status": "ok"
@@ -124,8 +127,8 @@ def buscar_categoria_por_id(id: int, db: Session = Depends(get_db)):
 
 
 @app.get("/api/v1/produtos", tags=["Produtos"])
-def listar_todos_produtos():
-    produtos = mercado_produto_repositorio.obter_todos()
+def listar_todos_produtos(db: Session = Depends(get_db)):
+    produtos = mercado_produto_repositorio.obter_todos(db)
     return produtos
 
 
@@ -165,6 +168,49 @@ def obter_produto_por_id(id: int):
     return produto
 
 
+@app.post("/api/v1/clientes", tags=["Clientes"])
+def cadastrar_cliente(cliente: ClienteCriar, db: Session = Depends(get_db)):
+    cliente = mercado_cliente_repositorio.cadastrar(
+        db, 
+        cliente.nome, 
+        cliente.cpf,
+        cliente.data_nascimento,
+        cliente.limite
+    )
+    return cliente
+
+
+@app.get("/api/v1/clientes", tags=["Clientes"])
+def listar_clientes(db: Session = Depends(get_db)):
+    clientes = mercado_cliente_repositorio.obter_todos(db)
+    return clientes
+
+
+@app.delete("/api/v1/clientes/{id}", tags=["Clientes"])
+def apagar_cliente(id: int, db: Session = Depends(get_db)):
+    linhas_afetadas = mercado_cliente_repositorio.apagar(db, id)
+    if not linhas_afetadas:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    return {"status": "ok"}
+
+
+@app.put("/api/v1/clientes/{id}", tags=["Clientes"])
+def editar_cliente(id: int, cliente: ClienteEditar, db: Session = Depends(get_db)):
+    linhas_afetadas = mercado_cliente_repositorio.editar(
+        db, id, cliente.data_nascimento, cliente.limite,
+    )
+    if not linhas_afetadas:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    return {"status": "ok"}
+
+
+@app.get("/api/v1/clientes/{id}", tags=["Clientes"])
+def listar_cliente(id: int, db: Session = Depends(get_db)):
+    cliente = mercado_cliente_repositorio.obter_por_id(db, id)
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    return cliente
+
 # Ex.1 Criar um endpoint do tipo POST /aluno/calcular-frequencia
 # Criar uma classe AlunoFrequencia
 #   nome
@@ -199,24 +245,13 @@ def obter_produto_por_id(id: int):
 # 127.0.0.1:8000/docs
 # 127.0.0.1:8000/greetings
 
+# ------------------------------------------------------------
+# Passos para criar um novo endpoint
+# Criar a tabela no SQL => CREATE TABLE ....
+# Adicionar a classe no src/database/models.py
+# Criar o repositório src/repositorios/mercado_<nome>_repositorio.py
+#   Criar a função cadastrar
+# Criar a classe <Nome>Criar e <Nome>Editar no arquivo classes.py
+# Adicionar rota(endpoint) no main.py de cadastro
+#   @app.post......
 
-# __________________________________________________________________
-# Criar novo endpoint
-# Criar tabela no SQL -> Create table....
-# Adiiciionar classe no src/database/models.py
-# criar repositorio src/repositorio/mercado_xxx_repositorio.py
-# criar função cadastrar
-# adicionar rota (endpoint) no main.py
-# @app.post....
-
-
-@app.post("/api/v1/clientes", tags=["Clientes"])
-def cadastrar_cliente(cliente: ClienteCriar, db: Session = Depends(get_db)):
-    cliente = mercado_cliente_repositorio.cadastrar(
-        db,
-        cliente.nome,
-        cliente.cpf,
-        cliente.data_nascimento,
-        cliente.limite
-    )   
-    return cliente

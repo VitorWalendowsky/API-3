@@ -1,15 +1,25 @@
 from src.banco_dados import conectar
 
+from sqlalchemy.orm import Session, contains_eager
 
-def cadastrar(nome: str, id_categoria: int):
-    conexao = conectar()
-    cursor = conexao.cursor()
-    sql = "INSERT INTO produtos (nome, id_categoria) VALUES (%s, %s)"
-    dados = (nome, id_categoria)
-    cursor.execute(sql, dados)
-    conexao.commit()
-    cursor.close()
-    conexao.close()
+from src.database.models import Produto
+
+
+def cadastrar(db: Session, nome: str, id_categoria: int):
+    produto = Produto(nome=nome, id_categoria=id_categoria)
+    db.add(produto)
+    db.commit()
+    db.refresh(produto)
+    return produto
+
+    # conexao = conectar()
+    # cursor = conexao.cursor()
+    # sql = "INSERT INTO produtos (nome, id_categoria) VALUES (%s, %s)"
+    # dados = (nome, id_categoria)
+    # cursor.execute(sql, dados)
+    # conexao.commit()
+    # cursor.close()
+    # conexao.close()
 
 def editar(id: int, nome: str, id_categoria: int):
     conexao = conectar()
@@ -37,29 +47,8 @@ def apagar(id: int):
     return linhas_afetadas
 
 
-def obter_todos():
-    conexao = conectar()
-    cursor = conexao.cursor()
-    sql = """select
-	produtos.id,
-	produtos.nome,
-	categorias.id,
-	categorias.nome
-	from produtos
-	inner join categorias on (produtos.id_categoria = categorias.id)"""
-    cursor.execute(sql)
-    registros = cursor.fetchall()
-    produtos = []
-    for registro in registros:
-        produto = {
-            "id": registro[0],
-            "nome": registro[1],
-            "categoria": {
-                "id": registro[2],
-                "nome": registro[3]
-            }
-        }
-        produtos.append(produto)
+def obter_todos(db: Session):
+    produtos = db.query(Produto).option(contains_eager(Produto.categoria)).all()
     return produtos
 
 

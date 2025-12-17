@@ -33,8 +33,7 @@ class ClienteCriar(BaseModel):
     data_nascimento: date
     limite: float
 
+
 class ClienteEditar(BaseModel):
-    nome: str
-    cpf: str
     data_nascimento: date
     limite: float
