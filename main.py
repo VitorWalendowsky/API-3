@@ -265,7 +265,7 @@ def listar_cliente(id: int, db: Session = Depends(get_db)):
 
 @app.get("/api/v1/livros", tags=["Livros"])
 def listar_livros(db: Session = Depends(get_db)):
-    return livro_repositorio.listar(db)
+    return livros_repositorio.listar(db)
 
 
 # Body (JSON):
